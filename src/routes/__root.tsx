@@ -137,6 +137,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%234f8ef7'/%3E%3Cstop offset='100%25' stop-color='%232563eb'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Cpath d='M16 5 L26 9 L26 17 C26 22.5 21.5 27 16 28 C10.5 27 6 22.5 6 17 L6 9 Z' fill='white' opacity='0.15'/%3E%3Cpath d='M16 7 L24 10.5 L24 17 C24 21.5 20.5 25.5 16 26.5 C11.5 25.5 8 21.5 8 17 L8 10.5 Z' fill='none' stroke='white' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M12 16.5 L15 19.5 L20 13.5' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E",
+      },
     ],
   }),
   shellComponent: RootShell,
