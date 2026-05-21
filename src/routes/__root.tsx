@@ -123,14 +123,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Muhammad Usman — Aspiring Cloud Security Engineer" },
+      { name: "description", content: "Portfolio of Muhammad Usman — Cloud Data Engineering at SMIT, aspiring Cloud Security Engineer based in Karachi." },
+      { name: "author", content: "Muhammad Usman" },
+      { property: "og:title", content: "Muhammad Usman — Aspiring Cloud Security Engineer" },
+      { property: "og:description", content: "Portfolio of Muhammad Usman — Cloud Data Engineering at SMIT, aspiring Cloud Security Engineer based in Karachi." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Muhammad Usman — Aspiring Cloud Security Engineer" },
+      { name: "twitter:description", content: "Portfolio of Muhammad Usman — Cloud Data Engineering at SMIT, aspiring Cloud Security Engineer based in Karachi." },
+      { name: "twitter:site", content: "@usman_pro" },
     ],
     links: [
       {
