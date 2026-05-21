@@ -7,8 +7,59 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 
 import appCss from "../styles.css?url";
+
+function CursorGlow() {
+  const glowRef = useRef<HTMLDivElement>(null);
+  const pos = useRef({ x: -999, y: -999 });
+  const current = useRef({ x: -999, y: -999 });
+  const raf = useRef<number>(0);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      pos.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("mousemove", onMove);
+
+    const animate = () => {
+      // smooth lerp follow
+      current.current.x += (pos.current.x - current.current.x) * 0.1;
+      current.current.y += (pos.current.y - current.current.y) * 0.1;
+      if (glowRef.current) {
+        glowRef.current.style.transform = `translate(${current.current.x - 200}px, ${current.current.y - 200}px)`;
+      }
+      raf.current = requestAnimationFrame(animate);
+    };
+    raf.current = requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(raf.current);
+    };
+  }, []);
+
+  return (
+    <div
+      ref={glowRef}
+      aria-hidden
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: 400,
+        height: 400,
+        borderRadius: "50%",
+        background: "radial-gradient(circle, oklch(0.58 0.24 260 / 0.18) 0%, transparent 70%)",
+        pointerEvents: "none",
+        zIndex: 9999,
+        willChange: "transform",
+        transition: "opacity 0.3s ease",
+      }}
+    />
+  );
+}
 
 function NotFoundComponent() {
   return (
@@ -99,10 +150,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
-        <script
-          src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.14/dist/dotlottie-wc.js"
-          type="module"
-        />
+        
       </head>
       <body>
         {children}
@@ -117,6 +165,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <CursorGlow />
       <Outlet />
     </QueryClientProvider>
   );

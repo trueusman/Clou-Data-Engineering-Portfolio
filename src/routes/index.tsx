@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { motion, useMotionValue, useSpring } from "motion/react";
+import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import {
   MapPin,
@@ -105,29 +105,12 @@ const fadeUp = {
 };
 
 // ── Background FX ─────────────────────────────────────────────────────────
+// Uses CSS animations (GPU-composited) instead of JS-driven Framer Motion
+// to avoid per-frame JS work for purely decorative elements.
 function BackgroundFX() {
-  // Generate stable particle positions
-  const particles = Array.from({ length: 28 }, (_, i) => ({
-    id: i,
-    x: (i * 37 + 11) % 100,
-    y: (i * 53 + 7) % 100,
-    size: (i % 3) + 1.5,
-    duration: 6 + (i % 8),
-    delay: (i * 0.4) % 5,
-  }));
-
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-      {/* Noise texture overlay */}
-      <div className="absolute inset-0 opacity-[0.025] dark:opacity-[0.04]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: "repeat",
-          backgroundSize: "128px 128px",
-        }}
-      />
-
-      {/* Animated grid */}
+      {/* Static grid — no animation, just visual texture */}
       <div
         className="absolute inset-0 opacity-[0.04] dark:opacity-[0.06]"
         style={{
@@ -140,109 +123,20 @@ function BackgroundFX() {
         }}
       />
 
-      {/* Animated gradient blobs */}
-      <motion.div
-        className="absolute rounded-full opacity-20 dark:opacity-15 blur-[120px]"
-        style={{ width: 600, height: 600, top: "-10%", left: "-10%", background: "oklch(0.58 0.24 260)" }}
-        animate={{ x: [0, 60, -30, 0], y: [0, 40, 80, 0], scale: [1, 1.15, 0.95, 1] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+      {/* CSS-animated blobs — transform/opacity only, GPU composited */}
+      <div
+        className="absolute rounded-full opacity-20 dark:opacity-[0.15] blur-[120px] bg-fx-blob-1"
+        style={{ width: 500, height: 500, top: "-10%", left: "-10%", background: "oklch(0.58 0.24 260)", animation: "blobDrift1 22s ease-in-out infinite" }}
       />
-      <motion.div
-        className="absolute rounded-full opacity-15 dark:opacity-10 blur-[140px]"
-        style={{ width: 500, height: 500, top: "30%", right: "-10%", background: "oklch(0.72 0.18 200)" }}
-        animate={{ x: [0, -50, 20, 0], y: [0, 60, -40, 0], scale: [1, 0.9, 1.1, 1] }}
-        transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
+      <div
+        className="absolute rounded-full opacity-[0.15] dark:opacity-10 blur-[140px]"
+        style={{ width: 420, height: 420, top: "30%", right: "-10%", background: "oklch(0.72 0.18 200)", animation: "blobDrift2 26s ease-in-out infinite" }}
       />
-      <motion.div
-        className="absolute rounded-full opacity-10 dark:opacity-8 blur-[100px]"
-        style={{ width: 400, height: 400, bottom: "5%", left: "30%", background: "oklch(0.65 0.22 280)" }}
-        animate={{ x: [0, 40, -20, 0], y: [0, -50, 30, 0], scale: [1, 1.2, 0.85, 1] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      {/* Floating particles */}
-      {particles.map((p) => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full bg-primary/40 dark:bg-primary/30"
-          style={{
-            width: p.size,
-            height: p.size,
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            x: [0, p.id % 2 === 0 ? 12 : -12, 0],
-            opacity: [0.2, 0.7, 0.2],
-          }}
-          transition={{
-            duration: p.duration,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: p.delay,
-          }}
-        />
-      ))}
     </div>
   );
 }
 
-// ── Cursor glow spotlight ──────────────────────────────────────────────────
-function CursorGlow() {
-  const mouseX = useMotionValue(-400);
-  const mouseY = useMotionValue(-400);
-
-  // Spring makes the glow lag slightly behind the cursor — feels organic
-  const springX = useSpring(mouseX, { stiffness: 120, damping: 20 });
-  const springY = useSpring(mouseY, { stiffness: 120, damping: 20 });
-
-  useEffect(() => {
-    const move = (e: MouseEvent) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-    window.addEventListener("mousemove", move);
-    return () => window.removeEventListener("mousemove", move);
-  }, [mouseX, mouseY]);
-
-  return (
-    <motion.div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-[9999] overflow-hidden"
-      style={{ mixBlendMode: "normal" }}
-    >
-      {/* Outer soft halo */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 600,
-          height: 600,
-          x: springX,
-          y: springY,
-          translateX: "-50%",
-          translateY: "-50%",
-          background:
-            "radial-gradient(circle, oklch(0.623 0.214 259.815 / 0.13) 0%, transparent 70%)",
-        }}
-      />
-      {/* Inner bright core */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 180,
-          height: 180,
-          x: springX,
-          y: springY,
-          translateX: "-50%",
-          translateY: "-50%",
-          background:
-            "radial-gradient(circle, oklch(0.623 0.214 259.815 / 0.22) 0%, transparent 70%)",
-        }}
-      />
-    </motion.div>
-  );
-}
+// ── Cursor glow spotlight — removed for performance ──────────────────────
 
 // ── Fade swap text ────────────────────────────────────────────────────────
 function FadeSwapText({ words }: { words: string[] }) {
@@ -589,7 +483,6 @@ function Portfolio() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden pt-20">
       <BackgroundFX />
-      <CursorGlow />
       <CookieBanner />
       <motion.div
         initial={{ opacity: 1 }}
@@ -645,23 +538,97 @@ function Portfolio() {
       {/* Nav */}
       <div className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4">
         <div className="w-full max-w-3xl relative">
+          {/* Let's Connect — outside pill, right side */}
+          <style>{`
+            .uiverse-btn {
+              display: none;
+            }
+            @media (min-width: 768px) {
+            .uiverse-btn {
+              position: absolute;
+              right: -168px;
+              top: 50%;
+              transform: translateY(-50%);
+              transition: all 0.3s ease-in-out;
+              box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.2);
+              padding-block: 0.5rem;
+              padding-inline: 1.25rem;
+              background-color: oklch(0.58 0.24 260);
+              border-radius: 9999px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #fff;
+              gap: 10px;
+              font-weight: bold;
+              border: 3px solid #ffffff4d;
+              outline: none;
+              overflow: hidden;
+              font-size: 13px;
+              cursor: pointer;
+              white-space: nowrap;
+              text-decoration: none;
+            }
+            }
+            .uiverse-btn .icon {
+              width: 20px;
+              height: 20px;
+              transition: all 0.3s ease-in-out;
+            }
+            .uiverse-btn:hover {
+              transform: translateY(-52%) scale(1.05);
+              border-color: #fff9;
+            }
+            .uiverse-btn:hover .icon {
+              transform: translate(4px);
+            }
+            .uiverse-btn:hover::before {
+              animation: uishine 1.5s ease-out infinite;
+            }
+            .uiverse-btn::before {
+              content: "";
+              position: absolute;
+              width: 100px;
+              height: 100%;
+              background-image: linear-gradient(120deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.8), rgba(255,255,255,0) 70%);
+              top: 0;
+              left: -100px;
+              opacity: 0.6;
+            }
+            @keyframes uishine {
+              0% { left: -100px; }
+              60% { left: 100%; }
+              to { left: 100%; }
+            }
+          `}</style>
+          <a
+            href="#contact"
+            onClick={(e) => { e.preventDefault(); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }); }}
+            className="hidden md:flex uiverse-btn"
+          >
+            Let's Connect
+            <svg className="icon" viewBox="0 0 24 24" fill="currentColor">
+              <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z" clipRule="evenodd" />
+            </svg>
+          </a>
           {/* Main navbar pill */}
           <motion.header
             className="w-full rounded-full border border-border/40 bg-background/90 shadow-lg shadow-black/10"
             style={{ backdropFilter: "blur(40px) saturate(200%)", WebkitBackdropFilter: "blur(40px) saturate(200%)" }}
           >
             <div className="flex items-center justify-between px-5 py-2.5">
-              {/* Logo */}
+              {/* Logo — mobile only */}
               <a
                 href="#top"
                 onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-                className="text-sm font-bold tracking-tight text-foreground hover:text-primary transition-colors"
+                className="md:hidden text-base font-bold tracking-tight text-foreground hover:text-primary transition-colors"
+                style={{ fontFamily: "'Playfair Display', serif" }}
               >
-                Usman<span className="text-primary">.</span>
+                Muhammad Usman
               </a>
 
-              {/* Desktop Nav links */}
-              <nav className="hidden md:flex items-center gap-0.5">
+              {/* Desktop Nav links — centered */}
+              <nav className="hidden md:flex items-center gap-0.5 mx-auto">
                 {[
                   { label: "About", id: "about" },
                   { label: "Skills", id: "skills" },
@@ -715,13 +682,6 @@ function Portfolio() {
                     </div>
                   </button>
                 </div>
-                <a
-                  href="#contact"
-                  onClick={(e) => { e.preventDefault(); document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="hidden md:inline-flex items-center gap-1 rounded-full bg-primary px-4 py-1.5 text-xs font-semibold text-primary-foreground shadow-sm shadow-primary/30 transition-all duration-200 hover:bg-primary/85 hover:-translate-y-px"
-                >
-                  Hire me <ArrowRight className="h-3 w-3" />
-                </a>
                 {/* Hamburger */}
                 <label className="hamburger md:hidden">
                   <input
@@ -781,9 +741,13 @@ function Portfolio() {
                     if (el) { el.style.opacity = "1"; el.scrollIntoView({ behavior: "smooth" }); }
                     setMobileOpen(false);
                   }}
-                  className="mt-1 w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/85 transition-all"
+                  className="uiverse-btn mt-1 w-full justify-center"
+                  style={{ position: "static", transform: "none" }}
                 >
-                  Hire me <ArrowRight className="h-3.5 w-3.5" />
+                  Let's Connect
+                  <svg className="icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm4.28 10.28a.75.75 0 000-1.06l-3-3a.75.75 0 10-1.06 1.06l1.72 1.72H8.25a.75.75 0 000 1.5h5.69l-1.72 1.72a.75.75 0 101.06 1.06l3-3z" clipRule="evenodd" />
+                  </svg>
                 </button>
               </div>
             </motion.div>
@@ -793,25 +757,15 @@ function Portfolio() {
 
       {/* Hero */}
       <section id="top" className="relative">
-        {/* Animated background blobs */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <motion.div
-            aria-hidden
+        {/* CSS-animated background blobs — GPU composited, no JS per frame */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden>
+          <div
             className="absolute -top-32 -left-24 h-[420px] w-[420px] rounded-full bg-primary/25 blur-3xl"
-            animate={{ x: [0, 40, 0], y: [0, 30, 0], scale: [1, 1.1, 1] }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+            style={{ animation: "blobDrift1 14s ease-in-out infinite" }}
           />
-          <motion.div
-            aria-hidden
+          <div
             className="absolute top-40 -right-32 h-[480px] w-[480px] rounded-full bg-sky-300/30 blur-3xl"
-            animate={{ x: [0, -50, 0], y: [0, 40, 0], scale: [1, 1.15, 1] }}
-            transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            aria-hidden
-            className="absolute bottom-0 left-1/3 h-[360px] w-[360px] rounded-full bg-indigo-300/25 blur-3xl"
-            animate={{ x: [0, 30, 0], y: [0, -30, 0], scale: [1, 1.08, 1] }}
-            transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+            style={{ animation: "blobDrift2 18s ease-in-out infinite" }}
           />
         </div>
 
@@ -838,6 +792,7 @@ function Portfolio() {
               transition={{ duration: 0.6 }}
               className="mt-6 text-4xl font-semibold tracking-tight text-foreground md:text-6xl"
             >
+              <span className="block text-2xl md:text-3xl font-bold text-primary mb-1">Muhammad Usman</span>
               <span className="block">Aspiring</span>
               <span className="block min-h-[1.3em]">
                 <TypewriterText
@@ -912,21 +867,18 @@ function Portfolio() {
             transition={{ duration: 0.9, ease: "easeOut" }}
             className="relative mx-auto w-full max-w-sm"
           >
-            {/* Rotating gradient ring */}
-            <motion.div
+            {/* Static gradient ring — was rotating, now static to save GPU */}
+            <div
               aria-hidden
-              className="absolute -inset-4 rounded-[2rem] opacity-70 blur-2xl"
+              className="absolute -inset-4 rounded-[2rem] opacity-60 blur-2xl"
               style={{
                 background:
                   "conic-gradient(from 0deg, oklch(0.623 0.214 259.815), oklch(0.75 0.18 230), oklch(0.55 0.22 270), oklch(0.623 0.214 259.815))",
               }}
-              animate={{ rotate: 360 }}
-              transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
             />
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            <div
               className="relative overflow-hidden rounded-[1.75rem] border border-border/60 bg-card shadow-2xl shadow-primary/20"
+              style={{ animation: "floatY 6s ease-in-out infinite" }}
             >
               <img
                 src={usmanPhoto}
@@ -949,7 +901,7 @@ function Portfolio() {
                 </div>
                 <span className="text-white/60">Karachi · PK</span>
               </motion.div>
-            </motion.div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -961,55 +913,127 @@ function Portfolio() {
       <AnimatedSection id="about" className="border-t border-border/60 bg-secondary/30">
         <div className="mx-auto max-w-6xl px-6 py-20">
           <SectionLabel>About</SectionLabel>
-          <div className="mt-6 grid gap-12 md:grid-cols-3">
-            <div className="md:col-span-1 flex flex-col items-center gap-4">
-              <h2 className="text-3xl font-semibold tracking-tight">
-                Always curious. Always learning. Always growing.
+
+          {/* Top row — bio + visual card */}
+          <div className="mt-10 grid gap-10 md:grid-cols-5 md:items-start">
+
+            {/* Left — bio text (3 cols) */}
+            <div className="md:col-span-3 space-y-6">
+              <h2 className="text-3xl font-semibold tracking-tight leading-snug">
+                Building a foundation in Cloud &amp; Security — one skill at a time.
               </h2>
-              {/* @ts-ignore — web component */}
-              <dotlottie-wc
-                src="https://lottie.host/de71a718-5fa5-4526-9fd9-f78eecd396ed/94DFnxpOyL.lottie"
-                style={{ width: "340px", height: "340px" }}
-                autoplay
-                loop
-              />
+
+              <div className="space-y-4 text-base leading-relaxed text-muted-foreground">
+                <p>
+                  My long-term goal is a career in <span className="font-medium text-foreground">Cloud Security and Cybersecurity</span>. To get there the right way, I'm first building strong programming and development fundamentals — because understanding how systems are built is the foundation for securing them.
+                </p>
+                <p>
+                  Right now my focus is on <span className="font-medium text-foreground">Cloud Data Engineering</span> at <span className="font-medium text-foreground">SMIT</span> — working with data pipelines, Python, SQL, and cloud tools. This is the groundwork I'm laying before moving into security. In the future I plan to document and manage this journey as I grow.
+                </p>
+                <p>
+                  Outside of coursework I explore Linux, networking, and data pipelines — and I enjoy connecting with people who are just as curious about tech.
+                </p>
+              </div>
+
+              {/* Quick-fact pills */}
+              <div className="flex flex-wrap gap-2 pt-2">
+                {[
+                  { icon: MapPin,       text: "Karachi, Pakistan" },
+                  { icon: GraduationCap, text: "SMIT — Cloud Data Engineering" },
+                  { icon: Shield,       text: "Aspiring Cloud Security Engineer" },
+                  { icon: Sparkles,     text: "500+ LinkedIn Connections" },
+                ].map(({ icon: Icon, text }) => (
+                  <span
+                    key={text}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-background px-3 py-1.5 text-xs font-medium text-foreground"
+                  >
+                    <Icon className="h-3.5 w-3.5 text-primary shrink-0" />
+                    {text}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="space-y-5 text-base leading-relaxed text-muted-foreground md:col-span-2">
-              <p>
-                My long-term goal is to build a career in Cloud Security and
-                Cybersecurity. To create a strong foundation, I'm learning programming
-                and development because understanding how applications and systems are
-                built helps develop deeper security knowledge.
-              </p>
-              <p>
-                Currently focusing on Web & App Development at SMIT and Cloud Data
-                Engineering (in progress) to strengthen my technical foundation and gain
-                practical experience.
-              </p>
-              <p>
-                I enjoy exploring different areas of tech, building practical knowledge,
-                and connecting with like-minded people.
-              </p>
+
+            {/* Right — visual card (2 cols) */}
+            <div className="md:col-span-2">
+              <div className="rounded-2xl border border-border/70 bg-background overflow-hidden shadow-sm">
+                {/* Card header bar */}
+                <div className="h-1.5 w-full bg-gradient-to-r from-primary via-sky-400 to-indigo-500" />
+
+                <div className="p-6 space-y-5">
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    {[
+                      { value: "2+",    label: "Courses\nActive" },
+                      { value: "500+",  label: "LinkedIn\nConnections" },
+                      { value: "5+",    label: "Projects\nBuilt" },
+                    ].map(({ value, label }) => (
+                      <div key={label} className="rounded-xl bg-secondary/50 px-2 py-3">
+                        <p className="text-xl font-bold text-primary">{value}</p>
+                        <p className="mt-0.5 text-[10px] font-medium text-muted-foreground whitespace-pre-line leading-tight">{label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Currently learning */}
+                  <div>
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Currently Learning</p>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Python & SQL",        pct: 55 },
+                        { label: "Cloud Fundamentals",  pct: 40 },
+                        { label: "Linux & Networking",  pct: 50 },
+                        { label: "Data Pipelines / ETL", pct: 35 },
+                      ].map(({ label, pct }) => (
+                        <div key={label}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="font-medium text-foreground">{label}</span>
+                            <span className="text-muted-foreground">{pct}%</span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-primary to-sky-400"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Goal badge */}
+                  <div className="flex items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+                    <Shield className="h-5 w-5 text-primary shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">End Goal</p>
+                      <p className="text-xs text-muted-foreground">Cloud Security Engineer</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="mt-14 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {interests.map((i, idx) => (
-              <motion.div
-                key={i.label}
-                initial={{ opacity: 0, y: 18 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-50px" }}
-                transition={{ duration: 0.4, delay: idx * 0.05 }}
-                whileHover={{ y: -4 }}
-                className="flex items-center gap-3 rounded-xl border border-border/70 bg-background px-4 py-3.5 text-sm font-medium"
-              >
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <i.icon className="h-4 w-4" />
-                </span>
-                {i.label}
-              </motion.div>
-            ))}
+          {/* Interest chips */}
+          <div className="mt-14">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-4">Areas of Interest</p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {interests.map((i, idx) => (
+                <motion.div
+                  key={i.label}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-40px" }}
+                  transition={{ duration: 0.35, delay: idx * 0.05 }}
+                  className="flex items-center gap-3 rounded-xl border border-border/70 bg-background px-4 py-3.5 text-sm font-medium hover:border-primary/40 hover:bg-primary/5 transition-colors duration-200"
+                >
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                    <i.icon className="h-4 w-4" />
+                  </span>
+                  {i.label}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </AnimatedSection>
@@ -1271,7 +1295,7 @@ function Portfolio() {
       </AnimatedSection>
 
       {/* Contact */}
-      <section id="contact" className="relative overflow-hidden border-t border-border/60 bg-foreground text-background">
+      <section id="contact" className="relative overflow-hidden border-t border-border/60 text-white" style={{ background: "oklch(0.1 0.04 264)" }}>
         <motion.div
           aria-hidden
           className="pointer-events-none absolute -top-40 left-1/2 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-primary/30 blur-3xl"
@@ -1360,44 +1384,61 @@ function Portfolio() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="w-full lg:w-[380px] shrink-0"
+              className="w-full lg:w-[400px] shrink-0"
             >
-              <div className="rounded-2xl border border-white/10 bg-neutral-800 p-8">
-                <p className="text-xs font-semibold uppercase tracking-widest text-neutral-400 mb-6">Reach me directly</p>
+              <div className="relative rounded-3xl border border-white/10 overflow-hidden p-8" style={{ background: "rgba(255,255,255,0.10)" }}>
+                {/* top accent line */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
+                {/* glow blob */}
+                <div className="pointer-events-none absolute -bottom-16 -right-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
 
-                {/* Email */}
-                <a
-                  href="mailto:truemusman@gmail.com"
-                  className="group flex items-center gap-4 rounded-xl border border-neutral-700 bg-neutral-900 p-4 transition-all duration-200 hover:bg-neutral-700 hover:border-primary/60 mb-4"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-neutral-400 mb-0.5">Email</p>
-                    <p className="text-sm font-semibold text-sky-400 truncate group-hover:text-sky-300 transition-colors">truemusman@gmail.com</p>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-neutral-500 group-hover:text-primary ml-auto shrink-0 transition-colors" />
-                </a>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40 mb-8">Get in touch</p>
 
-                {/* Phone */}
-                <a
-                  href="tel:+923141162973"
-                  className="group flex items-center gap-4 rounded-xl border border-neutral-700 bg-neutral-900 p-4 transition-all duration-200 hover:bg-neutral-700 hover:border-primary/60"
-                >
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/20 text-primary group-hover:bg-primary/30 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-                    </svg>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs text-neutral-400 mb-0.5">Phone / WhatsApp</p>
-                    <p className="text-sm font-semibold text-sky-400 group-hover:text-sky-300 transition-colors">+92 314 116 2973</p>
-                  </div>
-                  <ExternalLink className="h-4 w-4 text-neutral-500 group-hover:text-primary ml-auto shrink-0 transition-colors" />
-                </a>
+                <div className="space-y-4">
+                  {/* Email */}
+                  <a
+                    href="mailto:truemusman@gmail.com"
+                    className="group relative flex items-center gap-4 rounded-2xl p-4 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20 group-hover:bg-primary/25 transition-all">
+                      <Mail className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium text-white/40 mb-0.5 uppercase tracking-wider">Email</p>
+                      <p className="text-sm font-semibold text-white truncate group-hover:text-primary transition-colors">truemusman@gmail.com</p>
+                    </div>
+                    <div className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-white/5 group-hover:bg-primary/20 transition-all">
+                      <ExternalLink className="h-3.5 w-3.5 text-white/30 group-hover:text-primary transition-colors" />
+                    </div>
+                  </a>
 
-                <p className="mt-5 text-center text-xs text-neutral-500">Usually responds within 24 hours</p>
+                  {/* Phone */}
+                  <a
+                    href="tel:+923141162973"
+                    className="group relative flex items-center gap-4 rounded-2xl p-4 transition-all duration-300 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/10"
+                    style={{ background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.10)" }}
+                  >
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary ring-1 ring-primary/20 group-hover:bg-primary/25 transition-all">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.91a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium text-white/40 mb-0.5 uppercase tracking-wider">Phone / WhatsApp</p>
+                      <p className="text-sm font-semibold text-white group-hover:text-primary transition-colors">+92 314 116 2973</p>
+                    </div>
+                    <div className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-white/5 group-hover:bg-primary/20 transition-all">
+                      <ExternalLink className="h-3.5 w-3.5 text-white/30 group-hover:text-primary transition-colors" />
+                    </div>
+                  </a>
+                </div>
+
+                {/* bottom note */}
+                <div className="mt-6 flex items-center justify-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <p className="text-xs text-white/30">Usually responds within 24 hours</p>
+                </div>
               </div>
             </motion.div>
 
